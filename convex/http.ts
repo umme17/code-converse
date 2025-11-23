@@ -44,7 +44,7 @@ http.route({
 
             try{
                 await ctx.runMutation(api.users.syncUser, {
-                name : `${data.first_name || ""} + ${data.last_name || ""}`,
+                name : `${data.first_name || ""}  ${data.last_name || ""}`,
                 email: data.email_addresses[0].email_address,
                 clerkId: data.id,
                 image : data.image_url,
