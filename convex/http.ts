@@ -34,8 +34,8 @@ http.route({
                 "svix-timestamp": svix_timestamp,
                 "svix-signature": svix_signature
             }) as WebhookEvent;
-        }catch(err){
-            return new Response("Invalid signature", {status: 400});
+        }catch(error){
+            return new Response(`Invalid signature ${error}`, {status: 400});
         }
 
 
@@ -49,8 +49,8 @@ http.route({
                 clerkId: data.id,
                 image : data.image_url,
             })
-            }catch(err){
-                return new Response("Error syncing user", {status: 500});
+            }catch(error){
+                return new Response(`Error syncing user ${error}`, {status: 500});
             }
         }
 

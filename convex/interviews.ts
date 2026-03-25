@@ -1,74 +1,149 @@
-import {mutation,query} from "./_generated/server";
-import {v} from "convex/values";
-
-export const createInterview = mutation({
-    args: {
-        title: v.string(),
-        description: v.string(),
-        startTime: v.number(),
-        status: v.string(),
-        candidateId: v.string(),
-        interviewerIds: v.array(v.string()),
-        streamCallId: v.string(),
-    },
-    handler: async (ctx , args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if(!identity) throw new Error ("Unauthorized User" );
-
-            return await ctx.db.insert("interviews",{
-                ...args,
-            });
-    },
-});
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
 
 export const getAllInterviews = query({
-    handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
 
-        if(!identity) throw new Error ("Unauthorized User");
+    const interviews = await ctx.db.query("interviews").collect();
 
-        const interviews = await ctx.db.query("interviews").collect();
-        return interviews;
-    },
+    return interviews;
+  },
 });
 
 export const getMyInterviews = query({
-    handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
 
-        if(!identity) throw new Error ("Unauthorized User");
+    const interviews = await ctx.db
+      .query("interviews")
+      .withIndex("by_candidate_id", (q) => q.eq("candidateId", identity.subject))
+      .collect();
 
-        const interviews = await ctx.db.query("interviews").withIndex("by_candidate_id", (q) => q.eq(("candidateId"), identity.subject));
-        return interviews;
-    },
+    return interviews!;
+  },
 });
 
 export const getInterviewByStreamCallId = query({
-    args:{
-        streamCallId: v.string(),
-    },
-    handler: async (ctx , args) => {
-        const identity = await ctx.auth.getUserIdentity();
+  args: { streamCallId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("interviews")
+      .withIndex("by_streamCallId", (q) => q.eq("streamCallId", args.streamCallId))
+      .first();
+  },
+});
 
-        if(!identity) throw new Error ("Unauthorized User");
-        const interview = await ctx.db.query("interviews").withIndex("by_streamCallId", (q) => q.eq(("streamCallId"), args.streamCallId)).first();
-        return interview;
-    },
+export const createInterview = mutation({
+  args: {
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.number(),
+    status: v.string(),
+    streamCallId: v.string(),
+    candidateId: v.string(),
+    interviewerIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    return await ctx.db.insert("interviews", {
+      ...args,
+    });
+  },
 });
 
 export const updateInterviewStatus = mutation({
-    args: {
-        id : v.id("interviews"),
-        status: v.string(),
-    },
-    handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
+  args: {
+    id: v.id("interviews"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.id, {
+      status: args.status,
+      ...(args.status === "completed" ? { endTime: Date.now() } : {}),
+    });
+  },
+});
 
-        if(!identity) throw new Error ("Unauthorized User");
+// import {mutation,query} from "./_generated/server";
+// import {v} from "convex/values";
 
-        return await ctx.db.patch(args.id, {
-            status: args.status,
-            ...args.status == "completed" ? {endTime: Date.now()} : {},
-        })
-    }
-})
+// export const createInterview = mutation({
+//     args: {
+//         title: v.string(),
+//         description: v.string(),
+//         startTime: v.number(),
+//         status: v.string(),
+//         candidateId: v.string(),
+//         interviewerIds: v.array(v.string()),
+//         streamCallId: v.string(),
+//     },
+//     handler: async (ctx , args) => {
+//         const identity = await ctx.auth.getUserIdentity();
+//         if(!identity) throw new Error ("Unauthorized User" );
+
+//             return await ctx.db.insert("interviews",{
+//                 ...args,
+//             });
+//     },
+// });
+
+// export const getAllInterviews = query({
+//     handler: async (ctx) => {
+//         const identity = await ctx.auth.getUserIdentity();
+
+//         if(!identity) throw new Error ("Unauthorized User");
+
+//         const interviews = await ctx.db.query("interviews").collect();
+//         return interviews;
+//     },
+// });
+
+// export const getMyInterviews = query({
+//     handler: async (ctx) => {
+//         const identity = await ctx.auth.getUserIdentity();
+
+//         if(!identity) throw new Error ("Unauthorized User");
+
+//         const interviews = await ctx.db.query("interviews").withIndex("by_candidate_id", (q) => q.eq(("candidateId"), identity.subject))
+//         .collect();
+//         return interviews;
+//     },
+// });
+
+// export const getInterviewByStreamCallId = query({
+//     args:{
+//         streamCallId: v.string(),
+//     },
+//     handler: async (ctx , args) => {
+//         const identity = await ctx.auth.getUserIdentity();
+
+//         if(!identity) throw new Error ("Unauthorized User");
+//         const interview = await ctx.db.query("interviews").withIndex("by_streamCallId", (q) => q.eq(("streamCallId"), args.streamCallId)).first();
+//         return interview;
+//     },
+// });
+
+// export const updateInterviewStatus = mutation({
+//     args: {
+//         id : v.id("interviews"),
+//         status: v.string(),
+//     },
+//     handler: async (ctx, args) => {
+//         const identity = await ctx.auth.getUserIdentity();
+
+//         if(!identity) throw new Error ("Unauthorized User");
+
+//         return await ctx.db.patch(args.id, {
+//             status: args.status,
+//             ...args.status == "completed" ? {endTime: Date.now()} : {},
+//         })
+//     }
+// })
+
+
+
